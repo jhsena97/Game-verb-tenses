@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Verb Tenses</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🕹️</text></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Press Start 2P', cursive;
+            background-color: #282828;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            text-align: center;
+            border: 2px solid #fff;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        input, select, button {
+            background-color: #333;
+            color: white;
+            border: none;
+            padding: 10px;
+            margin: 10px;
+            font-size: 16px;
+            border-radius: 5px;
+            width: 200px;
+        }
+
+        button:hover {
+            background-color: #555;
+            cursor: pointer;
+        }
+
+        h1, h2, p {
+            margin: 10px 0;
+        }
+
+        #hallOfFameList {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        #hallOfFameList li {
+            background-color: #444;
+            margin: 5px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        #hallOfFameList li span {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Game Verb Tenses!</h1>
+        <div id="welcomeScreen">
+            <label for="name">Insira seu nome:</label>
+            <input type="text" id="name" placeholder="Seu nome" />
+            <label for="difficulty">Escolha a dificuldade:</label>
+            <select id="difficulty">
+                <option value="easy">easy</option>
+                <option value="medium">medium</option>
+                <option value="hard">hard</option>
+            </select>
+            <button onclick="startGame()">🕹️ Começar</button>
+            <button onclick="showHallOfFame()">🏆 Hall da Fama</button>
+        </div>
+
+        <div id="gameScreen" style="display: none;">
+            <h2>Olá, <span id="userName"></span>!</h2>
+            <p id="question"></p>
+            <button onclick="checkAnswer('past')">Passado</button>
+            <button onclick="checkAnswer('present')">Presente</button>
+            <button onclick="checkAnswer('future')">Futuro</button>
+            <p id="feedback"></p>
+            <p id="explanation"></p>
+            <button id="nextQuestionButton" onclick="nextQuestion()" style="display: none;">Próxima Questão</button>
+            <p>Pontuação: <span id="score">0</span></p>
+            <button onclick="resetGame()">Voltar ao Menu</button>
+        </div>
+
+        <div id="hallOfFame" style="display: none;">
+            <h2>Hall da Fama</h2>
+            <ul id="hallOfFameList"></ul>
+            <button onclick="backToMenu()">Voltar ao Menu</button>
+        </div>
+    </div>
+
+    <script>
+const easySentences = [
+    { sentence: "I will go to the market.", tense: "future", explanation: "O uso de 'will' indica uma ação no futuro." },
+    { sentence: "She is eating an apple.", tense: "present", explanation: "O verbo 'is eating' mostra uma ação em andamento no presente." },
+    { sentence: "They went to the park yesterday.", tense: "past", explanation: "'Went' é o passado do verbo 'go'." },
+    { sentence: "She will call you tomorrow.", tense: "future", explanation: "O uso de 'will' indica uma ação futura." },
+    { sentence: "He plays soccer every weekend.", tense: "present", explanation: "'Plays' indica um hábito ou rotina no presente." },
+    { sentence: "We visited our grandparents last Sunday.", tense: "past", explanation: "'Visited' é o passado do verbo regular 'visit'." }
+];
+
+const mediumSentences = [
+    { sentence: "By this time next week, I will have completed the project.", tense: "future", explanation: "'Will have completed' é usado para descrever uma ação futura que estará concluída antes de um momento específico." },
+    { sentence: "She has been working here since last year.", tense: "present", explanation: "'Has been working' indica uma ação que começou no passado e continua no presente." },
+    { sentence: "We had already left when she arrived.", tense: "past", explanation: "'Had already left' descreve uma ação concluída antes de outro evento no passado." },
+    { sentence: "They will have arrived by 10 PM.", tense: "future", explanation: "'Will have arrived' é usado para indicar uma ação que será concluída antes de um momento futuro." },
+    { sentence: "I have already finished my homework.", tense: "present", explanation: "'Have finished' é o presente perfeito, indicando uma ação concluída recentemente." },
+    { sentence: "She had never seen such a big building before.", tense: "past", explanation: "'Had seen' é o passado perfeito, descrevendo algo que aconteceu antes de outro evento no passado." }
+];
+
+const hardSentences = [
+    { sentence: "By the time you finish this course, you will have mastered the subject.", tense: "future", explanation: "'Will have mastered' é o tempo futuro perfeito." },
+    { sentence: "He has been thinking about the problem for hours without a solution.", tense: "present", explanation: "'Has been thinking' é o tempo presente perfeito contínuo." },
+    { sentence: "They had been living there for 5 years before moving.", tense: "past", explanation: "'Had been living' é o tempo passado perfeito contínuo." },
+    { sentence: "She will have been working here for 10 years next month.", tense: "future", explanation: "'Will have been working' é o futuro perfeito contínuo." },
+    { sentence: "He has never been so happy in his life.", tense: "present", explanation: "'Has been' é o presente perfeito, descrevendo uma experiência até o presente." },
+    { sentence: "We had been trying to contact her all day before she called back.", tense: "past", explanation: "'Had been trying' é o passado perfeito contínuo, indicando uma ação prolongada antes de outro evento no passado." }
+];
+
+
+        let currentQuestion = 0;
+        let score = 0;
+        let userName = "";
+        let difficulty = "easy";
+        let hallOfFame = [];
+        let questions = [];
+        let pointsPerCorrect = 1;
+
+        function loadHallOfFame() {
+            const storedHallOfFame = localStorage.getItem("hallOfFame");
+            if (storedHallOfFame) {
+                hallOfFame = JSON.parse(storedHallOfFame);
+            }
+        }
+
+        window.onload = loadHallOfFame;
+
+        function startGame() {
+            userName = document.getElementById('name').value;
+            difficulty = document.getElementById('difficulty').value;
+
+            if (userName) {
+                document.getElementById('welcomeScreen').style.display = 'none';
+                document.getElementById('gameScreen').style.display = 'block';
+                document.getElementById('userName').innerText = userName;
+                resetGameState();
+                setDifficulty();
+                shuffleQuestions();
+                showQuestion();
+            } else {
+                alert("Por favor, insira seu nome.");
+            }
+        }
+
+        function setDifficulty() {
+            if (difficulty === "easy") {
+                questions = [...easySentences];
+                pointsPerCorrect = 1;
+            } else if (difficulty === "medium") {
+                questions = [...mediumSentences];
+                pointsPerCorrect = 2;
+            } else if (difficulty === "hard") {
+                questions = [...hardSentences];
+                pointsPerCorrect = 3;
+            }
+        }
+
+        function shuffleQuestions() {
+            questions = questions.sort(() => Math.random() - 0.5);
+        }
+
+        function resetGameState() {
+            currentQuestion = 0;
+            score = 0;
+            document.getElementById('score').innerText = score;
+        }
+
+        function showQuestion() {
+            if (currentQuestion < questions.length) {
+                document.getElementById('question').innerText = questions[currentQuestion].sentence;
+                document.getElementById('feedback').innerText = "";
+                document.getElementById('explanation').innerText = "";
+                document.getElementById('nextQuestionButton').style.display = "none";
+            } else {
+                endGame();
+            }
+        }
+
+        function checkAnswer(tense) {
+            if (questions[currentQuestion].tense === tense) {
+                score += pointsPerCorrect;
+                document.getElementById('feedback').innerText = "Correto!";
+                document.getElementById('explanation').innerText = "";
+            } else {
+                document.getElementById('feedback').innerText = "Incorreto!";
+                document.getElementById('explanation').innerText = questions[currentQuestion].explanation;
+            }
+            document.getElementById('score').innerText = score;
+            document.getElementById('nextQuestionButton').style.display = "inline";
+        }
+
+        function nextQuestion() {
+            currentQuestion++;
+            showQuestion();
+        }
+
+        function endGame() {
+            document.getElementById('gameScreen').style.display = 'none';
+            document.getElementById('hallOfFame').style.display = 'block';
+            updateHallOfFame(userName, score);
+            saveHallOfFame();
+            displayHallOfFame();
+        }
+
+        function updateHallOfFame(name, score) {
+            const existingEntry = hallOfFame.find(entry => entry.name === name && entry.difficulty === difficulty);
+            if (!existingEntry || score > existingEntry.score) {
+                hallOfFame = hallOfFame.filter(entry => !(entry.name === name && entry.difficulty === difficulty));
+                hallOfFame.push({ name, score, difficulty });
+            }
+        }
+
+        function saveHallOfFame() {
+            localStorage.setItem("hallOfFame", JSON.stringify(hallOfFame));
+        }
+
+        function displayHallOfFame() {
+            const hallOfFameList = document.getElementById('hallOfFameList');
+            hallOfFameList.innerHTML = '';
+            hallOfFame.sort((a, b) => b.score - a.score);
+            hallOfFame.forEach(entry => {
+                const listItem = document.createElement('li');
+                listItem.innerHTML = `<span>${entry.name}</span> - ${entry.score} pontos (${entry.difficulty})`;
+                hallOfFameList.appendChild(listItem);
+            });
+        }
+
+        function resetGame() {
+            document.getElementById('gameScreen').style.display = 'none';
+            document.getElementById('welcomeScreen').style.display = 'block';
+        }
+
+        function showHallOfFame() {
+            document.getElementById('welcomeScreen').style.display = 'none';
+            document.getElementById('hallOfFame').style.display = 'block';
+            displayHallOfFame();
+        }
+
+        function backToMenu() {
+            document.getElementById('hallOfFame').style.display = 'none';
+            document.getElementById('welcomeScreen').style.display = 'block';
+        }
+    </script>
+</body>
+</html>
